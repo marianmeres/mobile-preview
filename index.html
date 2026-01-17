@@ -233,10 +233,17 @@
 			const savedSize = localStorage.getItem(SIZE_KEY);
 			if (savedSize) sizeInput.value = savedSize;
 
+			// restore last used URL from history
+			const history = getHistory();
+			if (history.length > 0) {
+				urlInput.value = history[0];
+			}
+
 			// kick off
 			render();
 			loadUrl();
 			renderHistory();
+			historySelect.value = urlInput.value;
 
 			//
 
