@@ -3,7 +3,11 @@
 	<head>
 		<meta charset="UTF-8" />
 		<meta name="viewport" content="width=device-width, initial-scale=1.0" />
-		<title>Mobile iframe Preview</title>
+		<link
+			rel="icon"
+			href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>📱</text></svg>"
+		/>
+		<title>Mobile Preview Helper</title>
 		<script>
 			function qsa(selector, context = null) {
 				return Array.from(
@@ -19,6 +23,26 @@
 				flex-direction: column;
 				align-items: center;
 				background: var(--bs-gray-400);
+			}
+
+			h1 {
+				font-size: 0.8rem;
+				position: fixed;
+				left: 1rem;
+				top: 50%;
+				transform: rotate(-90deg) translateX(-50%);
+				transform-origin: 0 0;
+				margin: 0;
+				color: var(--bs-gray);
+				white-space: nowrap;
+				opacity: 0.75;
+			}
+
+			h1 a {
+				color: inherit;
+			}
+			h1 a:hover {
+				color: var(--bs-black);
 			}
 
 			#preview {
@@ -53,14 +77,14 @@
 				gap: 1rem;
 			}
 
-			button {
+			.btn {
 				border-radius: 0.25rem;
 				border: 0;
 				font-size: 0.9rem;
 			}
 
-			button:hover,
-			button.active {
+			.btn:hover,
+			.btn.active {
 				background-color: var(--bs-black);
 				color: var(--bs-white);
 			}
@@ -74,14 +98,76 @@
 				text-decoration: none;
 				font-size: 1.5rem;
 				color: var(--bs-gray);
+				background-color: transparent;
+				border: 0;
 			}
 			.x:hover {
 				color: var(--bs-black);
 			}
+			.help {
+				position: fixed;
+				left: 0;
+				top: 0;
+				padding: 12px 16px;
+				line-height: 1;
+				text-decoration: none;
+				font-size: 1.2rem;
+				color: var(--bs-gray);
+			}
+			.help:hover {
+				color: var(--bs-black);
+			}
+
+			#history-controls {
+				display: flex;
+				gap: 0.25rem;
+				padding: 1rem;
+			}
+			#history {
+				font-size: 0.8rem;
+				padding: 0.25rem 0.5rem;
+				border-radius: 0.25rem;
+				border: 1px solid var(--bs-gray);
+				min-width: 200px;
+			}
+			#clear-history {
+				padding: 0.25rem 0.5rem;
+				font-size: 0.7rem;
+				line-height: 1;
+			}
 		</style>
 	</head>
 	<body>
-		<!-- <a href="./" class="x">✕</a> -->
+		<h1>
+			Mobile Preview by
+			<a href="https://github.com/marianmeres" target="_blank"
+				>@marianmeres</a
+			>
+		</h1>
+
+		<a
+			class="help"
+			href="https://github.com/marianmeres/mobile-preview"
+			title="Help"
+			target="_blank"
+			>?</a
+		>
+		<button
+			class="x"
+			onclick="location.href = urlInput.value"
+			title="Go to URL"
+		>
+			✕
+		</button>
+
+		<div id="history-controls">
+			<select id="history">
+				<option value="">— History —</option>
+			</select>
+			<button class="btn" id="clear-history" title="Remove selected">
+				✕
+			</button>
+		</div>
 
 		<div id="preview">
 			<iframe width="390" height="844"></iframe>
@@ -89,17 +175,29 @@
 		</div>
 
 		<div id="controls">
-			<button data-size="360x800">Android</button>
-			<button data-size="390x844">iPhone 14</button>
-			<button data-size="375x667">iPhone SE</button>
-			<button onclick="reloadCurrentIframeUrl()" title="Reload">↻</button>
-			<button onclick="promptUrl()" title="Set url">→</button>
+			<button class="btn" data-size="375x667">iPhone SE</button>
+			<button class="btn" data-size="360x800">Android</button>
+			<button class="btn" data-size="390x844">iPhone 14</button>
+			<button class="btn" data-size="412x915">Galaxy S</button>
+			<button class="btn" data-size="430x932">Pro Max</button>
+			<button
+				class="btn"
+				onclick="reloadCurrentIframeUrl()"
+				title="Reload"
+			>
+				↻
+			</button>
+			<button class="btn" onclick="promptUrl()" title="Set url">→</button>
 		</div>
 
 		<input type="hidden" name="iframe-url" value="./placeholder.html" />
 		<input type="hidden" name="size" value="360x800" />
 
 		<script>
+			const HISTORY_KEY = "mobile-preview-history";
+			const SIZE_KEY = "mobile-preview-size";
+			const MAX_HISTORY = 10;
+
 			// poor man's reactive state source
 			const urlInput = qsa("input[name=iframe-url]")[0];
 			const sizeInput = qsa("input[name=size]")[0];
@@ -108,10 +206,16 @@
 			const buttons = qsa("button[data-size]");
 			const iframe = qsa("iframe")[0];
 			const sizeLabel = qsa("#size-label")[0];
+			const historySelect = qsa("#history")[0];
+			const clearHistoryBtn = qsa("#clear-history")[0];
 
 			//
 			sizeInput.addEventListener("change", render);
 			urlInput.addEventListener("change", loadUrl);
+			historySelect.addEventListener("change", () =>
+				setUrl(historySelect.value),
+			);
+			clearHistoryBtn.addEventListener("click", removeSelectedHistory);
 
 			//
 			buttons.forEach((button) => {
@@ -121,9 +225,14 @@
 				});
 			});
 
+			// restore saved size
+			const savedSize = localStorage.getItem(SIZE_KEY);
+			if (savedSize) sizeInput.value = savedSize;
+
 			// kick off
 			render();
 			loadUrl();
+			renderHistory();
 
 			//
 
@@ -132,6 +241,7 @@
 				iframe.width = width;
 				iframe.height = height;
 				sizeLabel.textContent = `${width} × ${height}`;
+				localStorage.setItem(SIZE_KEY, sizeInput.value);
 				//
 				buttons.forEach((btn) => btn.classList.remove("active"));
 				qsa(`button[data-size="${width}x${height}"]`).forEach((btn) => {
@@ -151,7 +261,48 @@
 			}
 
 			function promptUrl() {
-				setUrl(prompt("Go to URL", "http://"));
+				const url = prompt("Go to URL", "http://");
+				if (url && url !== "http://") {
+					saveToHistory(url);
+					setUrl(url);
+				}
+			}
+
+			function getHistory() {
+				try {
+					return JSON.parse(localStorage.getItem(HISTORY_KEY)) || [];
+				} catch {
+					return [];
+				}
+			}
+
+			function saveToHistory(url) {
+				let history = getHistory().filter((u) => u !== url);
+				history.unshift(url);
+				history = history.slice(0, MAX_HISTORY);
+				localStorage.setItem(HISTORY_KEY, JSON.stringify(history));
+				renderHistory();
+			}
+
+			function removeSelectedHistory() {
+				const selected = historySelect.value;
+				if (!selected) return;
+				const history = getHistory().filter((u) => u !== selected);
+				localStorage.setItem(HISTORY_KEY, JSON.stringify(history));
+				renderHistory();
+			}
+
+			function renderHistory() {
+				const history = getHistory();
+				historySelect.innerHTML =
+					'<option value="">— History —</option>';
+				history.forEach((url) => {
+					const opt = document.createElement("option");
+					opt.value = url;
+					opt.textContent =
+						url.length > 40 ? url.slice(0, 40) + "…" : url;
+					historySelect.appendChild(opt);
+				});
 			}
 
 			function reloadCurrentIframeUrl() {
