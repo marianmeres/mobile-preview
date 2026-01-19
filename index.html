@@ -204,6 +204,7 @@
 		<script>
 			const HISTORY_KEY = "mobile-preview-history";
 			const SIZE_KEY = "mobile-preview-size";
+			const LAST_URL_KEY = "mobile-preview-last-url";
 			const MAX_HISTORY = 10;
 
 			// poor man's reactive state source
@@ -233,10 +234,10 @@
 			const savedSize = localStorage.getItem(SIZE_KEY);
 			if (savedSize) sizeInput.value = savedSize;
 
-			// restore last used URL from history
-			const history = getHistory();
-			if (history.length > 0) {
-				urlInput.value = history[0];
+			// restore last used URL
+			const lastUrl = localStorage.getItem(LAST_URL_KEY);
+			if (lastUrl) {
+				urlInput.value = lastUrl;
 			}
 
 			// kick off
@@ -263,6 +264,7 @@
 			function setUrl(value) {
 				if (value) {
 					urlInput.value = value;
+					localStorage.setItem(LAST_URL_KEY, value);
 					urlInput.dispatchEvent(new Event("change"));
 				}
 			}
@@ -296,6 +298,9 @@
 				if (!selected) return;
 				const history = getHistory().filter((u) => u !== selected);
 				localStorage.setItem(HISTORY_KEY, JSON.stringify(history));
+				if (localStorage.getItem(LAST_URL_KEY) === selected) {
+					localStorage.removeItem(LAST_URL_KEY);
+				}
 				renderHistory();
 			}
 
