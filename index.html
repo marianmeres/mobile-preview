@@ -81,6 +81,7 @@
 				border-radius: 0.25rem;
 				border: 0;
 				font-size: 0.9rem;
+				min-width: 2rem;
 			}
 
 			.btn:hover,
@@ -146,9 +147,7 @@
 	<body>
 		<h1>
 			Mobile Preview by
-			<a href="https://github.com/marianmeres" target="_blank"
-				>@marianmeres</a
-			>
+			<a href="https://github.com/marianmeres" target="_blank">@marianmeres</a>
 		</h1>
 
 		<a
@@ -167,12 +166,14 @@
 		</button>
 
 		<div id="history-controls">
+			<button class="btn" onclick="promptUrl()" title="Set url">→</button>
 			<select id="history">
 				<option value="">— History —</option>
 			</select>
-			<button class="btn" id="clear-history" title="Remove selected">
-				✕
+			<button class="btn" onclick="reloadCurrentIframeUrl()" title="Reload">
+				↻
 			</button>
+			<button class="btn" id="clear-history" title="Clear history">✕</button>
 		</div>
 
 		<div id="preview">
@@ -188,14 +189,6 @@
 				<option value="412x915">Galaxy S</option>
 				<option value="430x932">Pro Max</option>
 			</select>
-			<button
-				class="btn"
-				onclick="reloadCurrentIframeUrl()"
-				title="Reload"
-			>
-				↻
-			</button>
-			<button class="btn" onclick="promptUrl()" title="Set url">→</button>
 		</div>
 
 		<input type="hidden" name="iframe-url" value="./placeholder.html" />
@@ -294,25 +287,28 @@
 			}
 
 			function removeSelectedHistory() {
-				const selected = historySelect.value;
-				if (!selected) return;
-				const history = getHistory().filter((u) => u !== selected);
-				localStorage.setItem(HISTORY_KEY, JSON.stringify(history));
-				if (localStorage.getItem(LAST_URL_KEY) === selected) {
-					localStorage.removeItem(LAST_URL_KEY);
+				const confirmed = confirm(
+					"This will clear all history entries. Are you sure?",
+				);
+				if (confirmed) {
+					const selected = historySelect.value;
+					if (!selected) return;
+					const history = getHistory().filter((u) => u !== selected);
+					localStorage.setItem(HISTORY_KEY, JSON.stringify(history));
+					if (localStorage.getItem(LAST_URL_KEY) === selected) {
+						localStorage.removeItem(LAST_URL_KEY);
+					}
+					renderHistory();
 				}
-				renderHistory();
 			}
 
 			function renderHistory() {
 				const history = getHistory();
-				historySelect.innerHTML =
-					'<option value="">— History —</option>';
+				historySelect.innerHTML = '<option value="">— History —</option>';
 				history.forEach((url) => {
 					const opt = document.createElement("option");
 					opt.value = url;
-					opt.textContent =
-						url.length > 40 ? url.slice(0, 40) + "…" : url;
+					opt.textContent = url.length > 40 ? url.slice(0, 40) + "…" : url;
 					historySelect.appendChild(opt);
 				});
 			}
