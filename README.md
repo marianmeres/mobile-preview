@@ -4,7 +4,7 @@ A simple, single-file tool to preview any webpage in a mobile device frame.
 
 ## Features
 
-- Device presets: Android (360×800), iPhone 14 (390×844), iPhone SE (375×667)
+- Device presets: iPhone SE (375×667), Android (360×800), iPhone 14 (390×844), Galaxy S (412×915), iPhone Pro Max (430×932)
 - URL history saved in localStorage (last 10 URLs)
 - Persists selected device size across sessions
 - Zero dependencies (except optional reboot.css for styling)
